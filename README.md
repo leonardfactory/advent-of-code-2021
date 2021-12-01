@@ -1,6 +1,6 @@
-# advent-of-code-2020
+# advent-of-code-2021
 
-Advent of Code 2020
+Advent of Code 2021
 
 ## Esecuzione
 
