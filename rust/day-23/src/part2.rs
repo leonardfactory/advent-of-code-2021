@@ -2,7 +2,8 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use memoize::memoize;
 use std::{
-    collections::{HashSet, VecDeque},
+    cmp::Ordering,
+    collections::{BinaryHeap, HashSet, VecDeque},
     f64::MIN,
     hash::Hash,
     sync::Mutex,
@@ -272,6 +273,18 @@ impl Map {
     }
 }
 
+impl PartialOrd for Map {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Map {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.energy.cmp(&other.energy)
+    }
+}
+
 fn debug_amphipod(a: Option<Amphipod>) -> char {
     match a {
         Some(a) => a.to_char(),
@@ -322,38 +335,41 @@ fn map_available_moves(map: Map) -> Vec<Map> {
                 .map(|&(to, steps)| (i, to, steps))
                 .collect::<Vec<(usize, usize, usize)>>()
         })
-        .sorted_by(|a, b| Ord::cmp(&a.2, &b.2))
         .map(|(from, to, steps)| map.moves(from, to, steps))
+        .sorted()
         .collect_vec()
 }
 
 pub fn solve_amphipods_map(source_map: Map) -> Option<usize> {
     let mut energy: Option<usize> = None;
     let starting_moves = map_available_moves(source_map);
-    let mut stack: VecDeque<_> = starting_moves.into_iter().collect();
-    let mut processed: HashSet<Map> = HashSet::new();
+    let mut heap: BinaryHeap<_> = starting_moves.into_iter().collect();
+    let mut seen: HashSet<Map> = HashSet::new();
 
-    while let Some(map) = stack.pop_front() {
-        match energy {
-            Some(max) if map.energy > max || map.lower_bound() > max => continue,
-            _ => (),
-        }
+    while let Some(map) = heap.pop() {
+        // match energy {
+        //     Some(max) if map.energy > max || map.lower_bound() > max => continue,
+        //     _ => (),
+        // }
 
         if map.is_ordered() {
             println!("\nLocal minimum energy: {}", map.energy);
             map.print();
             energy = Some(map.energy);
-            continue;
+            return energy;
         }
 
         for next_map in map_available_moves(map) {
-            if processed.contains(&next_map) {
+            if seen.contains(&next_map) {
                 continue;
             }
-            if next_map.lower_bound() < energy.unwrap_or(usize::MAX) {
-                processed.insert(next_map.clone());
-                stack.push_front(next_map);
-            }
+
+            seen.insert(next_map.clone());
+            heap.push(next_map);
+            // if next_map.lower_bound() < energy.unwrap_or(usize::MAX) {
+            //     processed.insert(next_map.clone());
+            //     stack.push_front(next_map);
+            // }
         }
     }
 
