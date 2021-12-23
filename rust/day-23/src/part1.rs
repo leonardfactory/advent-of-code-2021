@@ -1,11 +1,7 @@
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use memoize::memoize;
-use std::{
-    collections::{HashSet, VecDeque},
-    io::stdin,
-    sync::Mutex,
-};
+use std::collections::{HashSet, VecDeque};
 
 pub fn part1() {}
 
@@ -139,7 +135,6 @@ impl Map {
                 }
                 None
             }
-            _ => panic!("can_move_to: caso non gestito"),
         }
     }
 

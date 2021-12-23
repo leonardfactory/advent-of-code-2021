@@ -1,11 +1,8 @@
 use itertools::Itertools;
 use lazy_static::lazy_static;
-use memoize::memoize;
 use std::{
     collections::{HashSet, VecDeque},
-    f64::MIN,
     hash::Hash,
-    sync::Mutex,
 };
 
 pub fn part1() {}
