@@ -1,10 +1,7 @@
-use core::panic;
-use std::cmp;
-use std::io;
-
 use crate::part1::Instruction::*;
 use crate::part1::Value::*;
 use assert_matches::assert_matches;
+use core::panic;
 use itertools::Itertools;
 
 pub fn part1() {}
@@ -85,6 +82,15 @@ impl Memory {
     pub fn get_var(&self, i: usize) -> i32 {
         self.vars[i]
     }
+
+    pub fn decode_number(&self) -> i64 {
+        self.input
+            .iter()
+            .map(|&x| char::from_digit(x as u32, 10).unwrap())
+            .collect::<String>()
+            .parse::<i64>()
+            .unwrap()
+    }
 }
 
 pub struct Program {
@@ -120,16 +126,6 @@ impl Program {
         };
 
         for instruction in &self.instructions {
-            if let Inp(_) = instruction {
-                println!(
-                    "mem> {:?}, inp={:?}, chars={:?}",
-                    memory.vars,
-                    memory.input.iter().skip(memory.input_cursor).collect_vec(),
-                    memory
-                        .vars
-                        .map(|c| char::from_u32(c as u32 + 'a' as u32).unwrap())
-                );
-            }
             self.exec(&mut memory, instruction);
         }
 
@@ -138,17 +134,17 @@ impl Program {
 
     const INP_CHUNK_SIZE: usize = 18;
 
-    pub fn run_heuristic(&self, from: &Memory, input: i32, iter: usize) -> Option<i64> {
+    pub fn run_monad(&self, from: &Memory, input: i32, iter: usize) -> Option<i64> {
         let mut is_input_processed = false;
         let mut memory = from.clone();
         memory.input.push(input);
 
-        println!(
-            "curr={}, mem={:?}, stack={:?}",
-            input,
-            memory.vars,
-            memory.input.iter().skip(memory.input_cursor).collect_vec(),
-        );
+        // println!(
+        //     "curr={}, mem={:?}, stack={:?}",
+        //     input,
+        //     memory.vars,
+        //     memory.input.iter().skip(memory.input_cursor).collect_vec(),
+        // );
 
         let current_instructions = self
             .instructions
@@ -165,10 +161,6 @@ impl Program {
             };
             let desired_input = memory.get_var(Z) % 26 + modulo_x_term;
             if input != desired_input {
-                println!(
-                    "skipping {} -> desired is {} (iter={})",
-                    input, desired_input, iter
-                );
                 return None;
             }
         }
@@ -186,7 +178,7 @@ impl Program {
             match instruction {
                 Inp(_) if is_input_processed => {
                     for next in 1..=9 {
-                        if let Some(max) = self.run_heuristic(&memory, next, iter + 1) {
+                        if let Some(max) = self.run_monad(&memory, next, iter + 1) {
                             return Some(max);
                         }
                     }
@@ -199,25 +191,8 @@ impl Program {
             self.exec(&mut memory, instruction)
         }
 
-        // let current = memory
-        //     .input
-        //     .iter()
-        //     .map(|&x| char::from_digit(x as u32, 10).unwrap())
-        //     .collect::<String>()
-        //     .parse::<i64>()
-        //     .unwrap();
-
-        // println!("tested: {}, valid: {}", current, memory.get_var(Z) == 0);
         if memory.get_var(Z) == 0 {
-            Some(
-                memory
-                    .input
-                    .iter()
-                    .map(|&x| char::from_digit(x as u32, 10).unwrap())
-                    .collect::<String>()
-                    .parse()
-                    .unwrap(),
-            )
+            Some(memory.decode_number())
         } else {
             None
         }
@@ -231,26 +206,6 @@ pub fn encode_model_number(n: i64) -> Vec<i32> {
         .collect_vec()
 }
 
-pub fn monad_bounds(program: &Program, min: i64, max: i64) -> i64 {
-    if max - min < 10_000_000 {
-        // println!("too small (min={} max={})", min, max);
-        return -1;
-    }
-
-    let middle = min + (max - min) / 2;
-    let middle_z = program.run(&encode_model_number(middle)).get_var(Z);
-    println!("v={}, z={}", middle, middle_z);
-    if middle_z == 0 {
-        println!("bound={}", middle);
-        return middle;
-    }
-
-    cmp::max(
-        monad_bounds(program, min, middle),
-        monad_bounds(program, middle, max),
-    )
-}
-
 pub fn monad_get_highest_valid(input: &str) -> i64 {
     let program = Program::load(input);
     let memory = Memory {
@@ -259,14 +214,12 @@ pub fn monad_get_highest_valid(input: &str) -> i64 {
         vars: [0_i32; 4],
     };
     for initial in 1..=9 {
-        if let Some(max) = program.run_heuristic(&memory, initial, 0) {
+        if let Some(max) = program.run_monad(&memory, initial, 0) {
             return max;
         }
     }
     panic!("nooope")
 }
-
-pub fn monad_is_valid() {}
 
 #[cfg(test)]
 pub mod tests {
