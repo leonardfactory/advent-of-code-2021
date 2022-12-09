@@ -68,6 +68,7 @@ impl Instruction {
 pub struct Memory {
     input_cursor: usize,
     input: Vec<i32>,
+    pub history: [[i32; 4]; 14 * 18],
     pub vars: [i32; 4],
 }
 
@@ -123,10 +124,12 @@ impl Program {
             input_cursor: 0,
             input: input.iter().copied().collect(),
             vars: [0_i32; 4],
+            history: [[0_i32; 4]; 14 * 18],
         };
 
-        for instruction in &self.instructions {
+        for (i, instruction) in self.instructions.iter().enumerate() {
             self.exec(&mut memory, instruction);
+            memory.history[i] = memory.vars;
         }
 
         memory
@@ -212,6 +215,7 @@ pub fn monad_get_highest_valid(input: &str) -> i64 {
         input_cursor: 0,
         input: vec![],
         vars: [0_i32; 4],
+        history: [[0_i32; 4]; 14 * 18],
     };
     for initial in 1..=9 {
         if let Some(max) = program.run_monad(&memory, initial, 0) {
